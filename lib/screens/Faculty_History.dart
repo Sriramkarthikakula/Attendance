@@ -26,6 +26,26 @@ class _Faculty_HistoryState extends State<Faculty_History> {
     curr = _auth.currentUser!.email;
     super.initState();
   }
+  String getDayOfWeek(DateTime date) {
+    switch (date.weekday) {
+      case DateTime.monday:
+        return 'Monday';
+      case DateTime.tuesday:
+        return 'Tuesday';
+      case DateTime.wednesday:
+        return 'Wednesday';
+      case DateTime.thursday:
+        return 'Thursday';
+      case DateTime.friday:
+        return 'Friday';
+      case DateTime.saturday:
+        return 'Saturday';
+      case DateTime.sunday:
+        return 'Sunday';
+      default:
+        return '';
+    }
+  }
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -136,8 +156,10 @@ class _Faculty_HistoryState extends State<Faculty_History> {
                               final time_slot = message['Time_slot'];
                               final Absent_list = message['Absentees'];
                               final Date = message['Date'];
+                              DateTime gettingDate = DateFormat('dd-MM-yyyy').parse(Date);
+                              String day = getDayOfWeek(gettingDate);
                               final edited = message['edited'];
-                              final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, Date,edited);
+                              final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, Date,edited,day);
                               messageWidgets.add(messageContainer);
                             }
                             return Expanded(
@@ -201,13 +223,14 @@ class Datawidget extends StatelessWidget {
  final List<dynamic> Absent_list;
  final String Date;
  final bool edited;
- Datawidget(this.Dept,this.Course,this.Section,this.year,this.time_slot,this.Absent_list,this.Date,this.edited);
+ final String day;
+ Datawidget(this.Dept,this.Course,this.Section,this.year,this.time_slot,this.Absent_list,this.Date,this.edited,this.day);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 10.0,horizontal: 23.0),
-      padding: EdgeInsets.fromLTRB(25, 20, 25, 10),
+
       decoration: BoxDecoration(
         color: Color(0xffEEF5FF),
         borderRadius: BorderRadius.all(Radius.circular(20.0)),
@@ -215,136 +238,175 @@ class Datawidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text('Date: $Date',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold
-                  ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 15.0,vertical:15.0),
+            decoration: BoxDecoration(
+              color: Color(0xffB1AFFF),
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(20.0),topRight: Radius.circular(20.0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month,
+                          size: 20.0,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                        SizedBox(width: 3.0,),
+                        Text("Session Date",style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13.0,
+                      ),),],
+                    ),
+                    Text(day,style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 26.0,
+                    ),),
+                    Text(Date,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17.0,
+                      ),
+                    ),
+                  ],
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text('Time: $time_slot',style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
-              ),
-
-            ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_outlined,
+                          size: 20.0,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                        SizedBox(width: 3.0,),
+                        Text("Time",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.0,
+                        ),
+                      ),],
+                    ),
+    SizedBox(height: 7.0,),
+    Text(time_slot,style: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: MediaQuery.of(context).size.width*0.045,
+    ),),
+                  ],
+                )
+              ],
+            ),
           ),
           SizedBox(height: 20.0,),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-
-                child: Text('Dept: $Dept',
-                  style: TextStyle(
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 20.0),
+            padding: EdgeInsets.symmetric(horizontal: 15.0,vertical: 12.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+    borderRadius: BorderRadius.all(Radius.circular(8.0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 3,
+                  blurRadius: 5,
+                  offset: Offset(0, 3), // changes position of shadow
+                ),
+              ],
+            ),
+            child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('Dept: $Dept',
+                    style: TextStyle(
+                    fontWeight: FontWeight.bold
+                ),
+              ),
+                SizedBox(height: 20.0,),
+                Text('Year: $year',style: TextStyle(
+                        fontWeight: FontWeight.bold
+                    ),),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                        Text('Section: $Section',
+                        style: TextStyle(
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                      SizedBox(height: 20.0,),
+                Text('Course: $Course',style: TextStyle(
                       fontWeight: FontWeight.bold
-                  ),
+                      ),),
+                    ],
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text('Year: $year',style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
-              ),
-
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 20.0,),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-
-                child: Text('Section: $Section',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold
-                  ),
+          Padding(
+            padding:EdgeInsets.symmetric(horizontal: 23.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Column(
+                  children: [
+                    Text("Absentees:",style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),),
+                    SizedBox(height: 10.0,),
+                    Column(
+                      children: Absent_list.map((absentee) => Text(absentee.toString(),style: TextStyle(
+                        fontSize: 16.0,
+                      ),)).toList(),
+                    ),
+                  ],
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
+                    child: IconButton(
+                        onPressed: (){
+                          Navigator.push(context, MaterialPageRoute(builder: (context){
+                            return Edit_Page(Dept,Course,year,time_slot,Section,Absent_list,Date);
+                          }));
+                        },
+                        icon: Icon(Icons.edit),
+                    ),
                 ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text('Course: $Course',style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
-              ),
-
-            ],
-          ),
-          SizedBox(height: 20.0,),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Column(
-                children: [
-                  Text("Absentees:",style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),),
-                  SizedBox(height: 10.0,),
-                  Column(
-                    children: Absent_list.map((absentee) => Text(absentee.toString(),style: TextStyle(
-                      fontSize: 16.0,
-                    ),)).toList(),
-                  ),
-                ],
-              ),
-              Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(30.0),
-                  ),
-                  child: IconButton(
-                      onPressed: (){
-                        Navigator.push(context, MaterialPageRoute(builder: (context){
-                          return Edit_Page(Dept,Course,year,time_slot,Section,Absent_list,Date);
-                        }));
-                      },
-                      icon: Icon(Icons.edit),
-                  ),
-              ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 5.0,),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(edited?"edited":"",style: TextStyle(
-                color: Color(0xff97979f),
-              ),),
-            ],
+          Padding(
+            padding: EdgeInsets.only(right: 23.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(edited?"edited":"",style: TextStyle(
+                  color: Color(0xff97979f),
+                ),),
+              ],
+            ),
           ),
         ],
 

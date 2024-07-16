@@ -28,6 +28,7 @@ class _EditRollnumbersState extends State<EditRollnumbers> {
       floatingActionButton:Padding(
         padding: EdgeInsets.only(bottom: 70.0),
         child: FloatingActionButton(onPressed: () async{
+          backgroundColor: Color(0xff8db4e7);
           List curr = await Excelupload.pickExcelFile();
           setState(() {
             rollNumber = [];
@@ -35,7 +36,7 @@ class _EditRollnumbersState extends State<EditRollnumbers> {
           });
 
         },
-          child: Icon(Icons.download),
+          child: Icon(Icons.file_copy_outlined),
 
         ),
       ),
@@ -355,10 +356,10 @@ class _RollnumbersState extends State<Rollnumbers> {
           ),
           child: Container(
             width: double.infinity,
-            color:Colors.red,
+            color:Color(0xff8db4e7),
             padding: EdgeInsets.symmetric(vertical: 20.0),
             child: Center(
-              child: Text("Submit Attendance",
+              child: Text("Update Rollnumbers",
                 style: TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold,
@@ -381,7 +382,7 @@ class NoHistory extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.history_outlined),
-        Text("Search a Number to get History"),
+        Text("No Roll Numbers Found"),
       ],
     );
   }
