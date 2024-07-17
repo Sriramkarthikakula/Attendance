@@ -10,7 +10,7 @@ class Faculty_main extends StatelessWidget {
       backgroundColor: Color(0xffb6d3f5),
       appBar: AppBar(
         backgroundColor: Color(0xff8db4e7),
-        title: Text('Attendance'),
+        title: Text('Attend'),
       ),
       body: Topsection(),
       floatingActionButton: Padding(
