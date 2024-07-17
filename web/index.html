@@ -55,5 +55,26 @@
       });
     });
   </script>
+  <script src="https://www.gstatic.com/firebasejs/8.4.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.4.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.4.1/firebase-analytics.js"></script>
+
+  <script>
+  //Replace with your config data
+  var firebaseConfig = {
+    apiKey: "AIzaSyBeb_y4GF34p6mqKavyfwFlakGeRNmbaN8",
+    authDomain: "attendance-e35d5.firebaseapp.com",
+    databaseURL: "https://attendance-e35d5-default-rtdb.firebaseio.com",
+    projectId: "attendance-e35d5",
+    storageBucket: "attendance-e35d5.appspot.com",
+    messagingSenderId: "91348246199",
+    appId: "1:91348246199:web:da47f7f358a44db37e7732",
+    measurementId: "G-CEY7V69WJQ"
+  };
+    
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+  </script>
 </body>
 </html>
