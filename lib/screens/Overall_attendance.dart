@@ -15,8 +15,8 @@ class Overall_Attendance extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xffEEF5FF),
       appBar: AppBar(
-        backgroundColor: Color(0xff8db4e7),
-        title: Text('Attendance testing for karthik'),
+        backgroundColor: Colors.red,
+        title: Text('Attendance testing for karthik and he is one of '),
       ),
       body: AttendanceCal(),
       floatingActionButton: FloatingActionButton(
