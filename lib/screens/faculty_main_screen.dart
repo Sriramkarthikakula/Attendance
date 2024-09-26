@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/screens/faculty_attendance_screen.dart';
-import 'package:attendance/screens/Profile.dart';
 
 import 'admin_profile.dart';
 class Faculty_main extends StatelessWidget {
