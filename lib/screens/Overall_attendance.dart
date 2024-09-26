@@ -163,7 +163,7 @@ class _AttendanceCalState extends State<AttendanceCal> {
         QuerySnapshot querySnapshot = await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get();
         if(querySnapshot.docs.isNotEmpty){
           List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
-          claases_len = doc.length;
+          claases_len = doc.length; // need to write classes *2
         }
         else{
           claases_len = 0;

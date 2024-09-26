@@ -9,10 +9,6 @@ class Faculty_main extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xffb6d3f5),
-      // appBar: AppBar(
-      //   backgroundColor: Color(0xff8db4e7),
-      //   title: Text('Attendance'),
-      // ),
       body: Topsection(),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: 70.0),
