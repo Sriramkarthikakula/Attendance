@@ -1,5 +1,6 @@
 import 'package:attendance/screens/admin_profile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -18,8 +19,18 @@ class _AdminPageState extends State<AdminPage> {
   final _firestore = FirebaseFirestore.instance;
   void fun1(){
     setState(() {
-      searching = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      searching = DateFormat('yyyy-MM-dd').format(DateTime.now());
     });
+  }
+
+  String formatDate(String inputDate) {
+    // Parse the input date string in 'yyyy-MM-dd' format
+    DateTime date = DateFormat('yyyy-MM-dd').parse(inputDate);
+
+    // Format the parsed date to 'dd-MM-yyyy' format
+    String formattedDate = DateFormat('dd-MM-yyyy').format(date);
+
+    return formattedDate;
   }
   void ChangeCheckedState(DocumentReference ref,bool checked) async{
     DocumentReference docref = ref;
@@ -30,9 +41,44 @@ class _AdminPageState extends State<AdminPage> {
       await docref.update({'checked':true});
     }
   }
+  bool isLoading = true; // To track loading state
+  String? role;
+  String deptback="";
+  final _auth = FirebaseAuth.instance;
+  Future<void> fetchUserRole() async {
+    try {
+      final QuerySnapshot userDocs = await FirebaseFirestore.instance
+          .collection('Faculty_Data')
+          .where('email', isEqualTo: curr)
+          .get();
+
+      if (userDocs.docs.isNotEmpty) {
+        final DocumentSnapshot userDoc = userDocs.docs[0];
+        setState(() {
+          role = userDoc['faculty_status'];
+          if(role!="admin"){
+            deptback = userDoc['department'];
+          }
+          isLoading = false; // Stop loading after role is fetched
+        });
+      } else {
+        setState(() {
+          isLoading = false; // Stop loading if no user found
+        });
+      }
+    } catch (error) {
+      // Handle any errors here
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
+    curr = _auth.currentUser!.email!;
+    fetchUserRole();
     fun1();
     super.initState();
   }
@@ -43,13 +89,13 @@ class _AdminPageState extends State<AdminPage> {
       home: Scaffold(
         appBar: AppBar(
           backgroundColor: Color(0xffC4E4FF),
-          title: Text("Admin Panel"),
+          title: Text("Attendance"),
         ),
         body: SafeArea(
           child: Column(
             children: <Widget>[
               StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('Absent_data').where('Date', isEqualTo: searching).orderBy('Submission', descending: true).snapshots(),
+                stream: role=="admin"?_firestore.collection('Absent_data').where('Date', isEqualTo: searching).orderBy('Submission', descending: true).snapshots():_firestore.collection('Absent_data').where('Date', isEqualTo: searching).where('Department', isEqualTo: deptback).orderBy('Submission', descending: true).snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> Asyncsnapshots) {
                   if (Asyncsnapshots.hasData) {
                     final messages = Asyncsnapshots.data?.docs;
@@ -64,9 +110,10 @@ class _AdminPageState extends State<AdminPage> {
                         final time_slot = message['Time_slot'];
                         final Absent_list = message['Absentees'];
                         final Date = message['Date'];
+                        String displayDate = formatDate(Date);
                         final Faculty = message['Faculty'];
                         final checked = message['checked'];
-                        final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, Date,Faculty,ref,checked,ChangeCheckedState);
+                        final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, displayDate,Faculty,ref,checked,ChangeCheckedState);
                         messageWidgets.add(messageContainer);
                       }
                       return Expanded(

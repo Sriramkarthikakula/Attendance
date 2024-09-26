@@ -7,12 +7,15 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:open_file/open_file.dart';
 import 'package:universal_html/html.dart' as html;
-// Ensure this import
 
 class PdfApi {
-  static Future<File?> generatePDF() async {
+  static Future<File?> generatePDF(String deptvalue, String yearvalue, String sectionvalue) async {
     final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     final ttf = pw.Font.ttf(fontData);
+    String studentID = StudentsData[0][0];
+    String yearPrefix = studentID.substring(0, 2);
+    int startYear = 2000 + int.parse(yearPrefix); // e.g., 21 -> 2021
+    int endYear = startYear + 4; // A 4-year span
 
     final pdf = pw.Document();
     pdf.addPage(
@@ -20,6 +23,40 @@ class PdfApi {
         margin: pw.EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
         pageFormat: PdfPageFormat.a3,
         build: (context) => [
+          pw.Header(
+            level: 1,
+            child: pw.Center(
+              child: pw.Text(
+                'Sagi Rama Krishnam Raju Engineering College',
+                style: pw.TextStyle(
+                  fontSize: 28,
+                  fontWeight: pw.FontWeight.bold,
+                  font: ttf,
+                ),
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 10), // Space between headers
+          pw.Center(
+            child: pw.Text(
+              '$deptvalue-$yearvalue-$sectionvalue Section',
+              style: pw.TextStyle(
+                fontSize: 20,
+                fontWeight: pw.FontWeight.bold,
+                font: ttf,
+              ),
+            ),
+          ),
+          pw.Center(
+            child: pw.Text(
+              '$startYear-$endYear',
+              style: pw.TextStyle(
+                fontSize: 18,
+                font: ttf,
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 10),
           pw.Header(
             level: 1,
             child: pw.Center(

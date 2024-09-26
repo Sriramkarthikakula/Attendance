@@ -35,10 +35,20 @@ class _Admin_HistoryState extends State<Admin_History> {
     );
     if (picked != null && picked != DateTime.now()) {
       setState(() {
-        search = DateFormat('dd-MM-yyyy').format(picked).toString(); // Set the selected date to the search string
+        search = DateFormat('yyyy-MM-dd').format(picked).toString(); // Set the selected date to the search string
       });
       searchController.text = DateFormat('dd-MM-yyyy').format(picked).toString();
     }
+
+  }
+  String formatDate(String inputDate) {
+    // Parse the input date string in 'yyyy-MM-dd' format
+    DateTime date = DateFormat('yyyy-MM-dd').parse(inputDate);
+
+    // Format the parsed date to 'dd-MM-yyyy' format
+    String formattedDate = DateFormat('dd-MM-yyyy').format(date);
+
+    return formattedDate;
   }
   @override
   Widget build(BuildContext context) {
@@ -138,10 +148,11 @@ class _Admin_HistoryState extends State<Admin_History> {
                                 final time_slot = message['Time_slot'];
                                 final Absent_list = message['Absentees'];
                                 final Date = message['Date'];
+                                String displayDate = formatDate(Date);
                                 final Faculty = message['Faculty'];
                                 final edited = message['edited'];
 
-                                final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, Date,Faculty,edited);
+                                final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, displayDate,Faculty,edited);
                                 messageWidgets.add(messageContainer);
                               }
                               return Expanded(

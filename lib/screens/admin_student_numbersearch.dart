@@ -1,9 +1,13 @@
 import 'package:attendance/Data/lists_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 import '../Data/attendance.dart';
 
@@ -34,7 +38,11 @@ class Student_AttendanceCal extends StatefulWidget {
 class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
   final _firestore = FirebaseFirestore.instance;
   final TextEditingController searchController = TextEditingController();
-  String search ="" ;
+  DateTime academicYearStart = DateTime.now();
+  String search ="";
+  String curr="";
+  String selectedDate='';
+  String Today_date = '';
   String searching = "";
   bool isFlag = false;
   String deptvalue = "";
@@ -42,21 +50,70 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
   String fetched_Academic_year = "";
   String sectionvalue = "";
   List<dynamic> class_list = [];
+  List<dynamic> roll_no = [];
   int counter = 0;
+  dynamic deptback="";
   double loader = 0.0;
   int percentageloader = 0;
   List<dynamic> Sections = ["Select"];
   List<dynamic> branches = ["Select"];
+  bool isLoading = true; // To track loading state
+  String? role;
+  final _auth = FirebaseAuth.instance;
   void func() async {
+    try {
+      final QuerySnapshot userDocs = await FirebaseFirestore.instance
+          .collection('Faculty_Data')
+          .where('email', isEqualTo: curr)
+          .get();
+
+      if (userDocs.docs.isNotEmpty) {
+        final DocumentSnapshot userDoc = userDocs.docs[0];
+        setState(() {
+          role = userDoc['faculty_status'];
+          if(role!="admin"){
+            deptback = userDoc['department'];
+          }
+          // Example field name
+           // Stop loading after role is fetched
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          // Stop loading if no user found
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Role not found'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (error) {
+      // Handle any errors here
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error while fetching Details'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
     final messages = await _firestore.collection('Dept_data').get();
     for (var message in messages.docs){
       final data = message.data();
       setState(() {
-        branches =  branches + data['Branches'];
+        role=="admin"?branches =  branches + data['Branches']:branches.add(deptback);
+        isLoading = false;
       });
     }
   }
+
+
   void func1(String deptvalue, String yearvalue) async {
+
     final messages = await _firestore.collection('Full_Data').get();
     for (var message in messages.docs) {
       var data = message.data();
@@ -65,6 +122,24 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
           Sections = ["Select"];
           Sections = Sections+ data[deptvalue][yearvalue]['section'];
           fetched_Academic_year = data[deptvalue][yearvalue]['Academic_year_begins'];
+          academicYearStart = DateFormat("yyyy-MM-dd").parse(fetched_Academic_year);
+        });
+        break;
+      }
+      else{
+        continue;
+      }
+    }
+  }
+  void func2(String deptvalue, String yearvalue,String section) async {
+
+    final messages = await _firestore.collection('Full_Data').get();
+    for (var message in messages.docs) {
+      var data = message.data();
+      if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
+        setState(() {
+          roll_no = [];
+          roll_no = data[deptvalue][yearvalue][section];
         });
         break;
       }
@@ -98,7 +173,7 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
       }
     }
     for(var items in class_list){
-      QuerySnapshot querySnapshot = await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get();
+      QuerySnapshot querySnapshot = (selectedDate=="" && Today_date=="")? await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get() : await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Date', isGreaterThanOrEqualTo: selectedDate).where('Date', isLessThanOrEqualTo: Today_date).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get();
       if(querySnapshot.docs.isNotEmpty){
         List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
         claases_len = doc.length;
@@ -118,7 +193,8 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
       List<dynamic> StudentStat = [];
       List<String> AbyCwithPercentage = [];
       for(var j in class_list){
-        QuerySnapshot querySnapshot = await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: j).where('Academic_year',isEqualTo:fetched_Academic_year).where('Absentees', arrayContains: searching).get();
+        QuerySnapshot querySnapshot = (selectedDate=="" && Today_date=="")? await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: j).where('Academic_year',isEqualTo:fetched_Academic_year).where('Absentees', arrayContains: searching).get() :await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: j).where('Date', isGreaterThanOrEqualTo: selectedDate).where('Date', isLessThanOrEqualTo: Today_date).where('Academic_year',isEqualTo:fetched_Academic_year).where('Absentees', arrayContains: searching).get();
+        print(querySnapshot.docs.length);
         if(querySnapshot.docs.isNotEmpty){
           List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
           len = doc.length;
@@ -180,208 +256,295 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
       }
     return messageWidgets;
   }
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
   @override
   void initState() {
+    curr = _auth.currentUser!.email!;
     func();
     super.initState();
   }
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          SizedBox(height: 30.0),
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  DropdownMenu<dynamic>(
-                            label: Text("Department"),
-                            onSelected: (dynamic? value) {
-                              // This is called when the user selects an item.
-                              setState(() {
-                                deptvalue = value!;
-                              });
-                            },
-                            dropdownMenuEntries: branches.map<DropdownMenuEntry<String>>((dynamic value) {
-                              return DropdownMenuEntry<String>(value: value, label: value);
-                            }).toList(),
-                            initialSelection: branches.first,
-                          ),
-                          DropdownMenu<String>(
-                            initialSelection: Year.first,
-                            label: Text("Year"),
-                            onSelected: (String? value) {
-                              // This is called when the user selects an item.
-                              setState(() {
-                                yearvalue = value!;
-
-                                func1(deptvalue,yearvalue);
-                              });
-                            },
-                            dropdownMenuEntries: Year.map<DropdownMenuEntry<String>>((String value) {
-                              return DropdownMenuEntry<String>(value: value, label: value);
-                            }).toList(),
-                          ),
-                ],
-              ),
-              SizedBox(height: 20.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  DropdownMenu<dynamic>(
-                              initialSelection: Sections.first,
-                              label: Text("Section"),
+    return Stack(
+      children: [SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 30.0),
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    DropdownMenu<dynamic>(
+                              label: Text("Department"),
                               onSelected: (dynamic? value) {
                                 // This is called when the user selects an item.
                                 setState(() {
-                                  sectionvalue = value!;
+                                  deptvalue = value!;
                                 });
                               },
-                              dropdownMenuEntries: Sections.map<DropdownMenuEntry<String>>((dynamic value) {
+                              dropdownMenuEntries: branches.map<DropdownMenuEntry<String>>((dynamic value) {
+                                return DropdownMenuEntry<String>(value: value, label: value);
+                              }).toList(),
+                              initialSelection: branches.first,
+                            ),
+                            DropdownMenu<String>(
+                              initialSelection: Year.first,
+                              label: Text("Year"),
+                              onSelected: (String? value) {
+                                // This is called when the user selects an item.
+                                setState(() {
+                                  yearvalue = value!;
+
+                                  func1(deptvalue,yearvalue);
+                                });
+                              },
+                              dropdownMenuEntries: Year.map<DropdownMenuEntry<String>>((String value) {
                                 return DropdownMenuEntry<String>(value: value, label: value);
                               }).toList(),
                             ),
-                ],
-              ),
-              SizedBox(height: 20.0,),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width*0.05),
-                child: TextField(
-                  autofocus: true,
-                  controller: searchController,
-                  onEditingComplete: (){
-                    setState(() {
-                      searching = search;
-                      FocusScope.of(context).unfocus();
-                      loader = 0.0;
-                      percentageloader = 0;
-                      counter = 0;
-                      StudentsData.clear();
-                      lis = gettingClassList(deptvalue,yearvalue,sectionvalue);
-                    });
-                  },
-                  keyboardType: TextInputType.text,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: "Search By Number",
-                    hintStyle:TextStyle(
-                      color: Colors.grey.withOpacity(0.8),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(15.0),),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.withOpacity(0.25),
-                  ),
-
-                  onChanged: (value){
-                    search = value;
-                  },
+                  ],
                 ),
-              ),
-            ],
-          ),
-          // Container(
-          //   child: Row(
-          //
-          //     children: [
-          //
-          //
-          //     ],
-          //   ),
-          // ),
-          //
-          // Container(
-          //   padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width*0.05),
-          //   child: Expanded(
-          //     child: Row(
-          //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          //       children: [
+                SizedBox(height: 20.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    DropdownMenu<dynamic>(
+                                initialSelection: Sections.first,
+                                label: Text("Section"),
+                                onSelected: (dynamic? value) {
+                                  // This is called when the user selects an item.
+                                  setState(() {
+                                    sectionvalue = value!;
+                                    func2(deptvalue, yearvalue, sectionvalue);
+                                  });
+                                },
+                                dropdownMenuEntries: Sections.map<DropdownMenuEntry<String>>((dynamic value) {
+                                  return DropdownMenuEntry<String>(value: value, label: value);
+                                }).toList(),
+                              ),
+        ElevatedButton(
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) {
+                final mediaQuery = MediaQuery.of(context).size;
+                return AlertDialog(
+                  content: SizedBox(
+                    width: mediaQuery.width * 0.8,
+                    height: mediaQuery.height * 0.5,
+                    child: SfDateRangePicker(
+                      minDate: academicYearStart,
+      maxDate: DateTime.now(),
+                      onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                        if (args.value is PickerDateRange) {
+                          final DateTime? startDate = args.value.startDate;
+                          final DateTime? endDate = args.value.endDate;
 
-                  // Expanded(
-                  //   child:
-                  // ),
-          //         // Padding(
-          //         //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          //         //   child: TextButton(
-          //         //     onPressed: (){
-          //         //
-          //         //     },
-          //         //     child: Row(
-          //         //         mainAxisAlignment: MainAxisAlignment.center,
-          //         //         children: [
-          //         //           isFlag?Icon(Icons.cancel):Icon(Icons.search),
-          //         //           SizedBox(width: 10.0,),
-          //         //           isFlag?Text("Cancel",):Text("Search",),
-          //         //         ]
-          //         //     ),
-          //         //     style: ButtonStyle(
-          //         //       backgroundColor: MaterialStateProperty.all(Color(0xff2D3250)),
-          //         //       minimumSize: MaterialStateProperty.all(Size(150.0, 65.0)),
-          //         //       foregroundColor: MaterialStateProperty.all(Colors.white),
-          //         //       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-          //         //         RoundedRectangleBorder(
-          //         //           borderRadius: BorderRadius.circular(5.0),
-          //         //         ),
-          //         //       ),
-          //         //     ),
-          //         //   ),
-          //         // ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
-          SizedBox(height: 10.0,),
-          Expanded(
-            child: FutureBuilder<List<Datawidget>>(
-              future: lis,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  // Return a loading indicator while waiting for the future
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [CircularProgressIndicator(
-                        value: loader,
-                        backgroundColor: Colors.grey,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                      ),
-                        SizedBox(height: 10.0,),
-                        Text('Fetched: $percentageloader%'),
-                      ],
-                    ),
-                  );
-                } else if (snapshot.hasError) {
-                  // Return an error message if the future fails
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                } else {
-                  // Return the ListView once the future completes
-                  List<Datawidget>? data = snapshot.data;
-                  if (data != null && data.isNotEmpty) {
-                    return ListView.builder(
-                      itemCount: data.length,
-                      itemBuilder: (context, index) {
-                        return data[index];
+                          if (startDate != null && endDate != null) {
+                            setState(() {
+                              selectedDate = _formatDate(startDate);
+                              Today_date = _formatDate(endDate);
+                            });
+                          }
+                        }
                       },
+                      selectionMode: DateRangePickerSelectionMode.range,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+
+                        setState(() {
+                          selectedDate = "";
+                          Today_date = "";
+                        });
+                        // Handle the Cancel button press
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+
+                        // Handle the OK button press
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          child: Text(selectedDate!="" && Today_date!=""
+              ? "$selectedDate - $Today_date"
+              : "Select Date Range",),
+        )
+        ],
+                ),
+                SizedBox(height: 20.0,),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width*0.05),
+                  child: TextField(
+                    autofocus: true,
+                    controller: searchController,
+                    onEditingComplete: (){
+                      if (!roll_no.contains(search)){
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Entered Roll number not in the section')),
+                        );
+                      }
+                      else{
+                        setState(() {
+                          searching = search;
+                          FocusScope.of(context).unfocus();
+                          loader = 0.0;
+                          percentageloader = 0;
+                          counter = 0;
+                          StudentsData.clear();
+                          lis = gettingClassList(deptvalue,yearvalue,sectionvalue);
+                        });
+                      }
+
+                    },
+                    keyboardType: TextInputType.text,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: "Search By Number",
+                      hintStyle:TextStyle(
+                        color: Colors.grey.withOpacity(0.8),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(15.0),),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.withOpacity(0.25),
+                    ),
+
+                    onChanged: (value){
+                      search = value;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // Container(
+            //   child: Row(
+            //
+            //     children: [
+            //
+            //
+            //     ],
+            //   ),
+            // ),
+            //
+            // Container(
+            //   padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width*0.05),
+            //   child: Expanded(
+            //     child: Row(
+            //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            //       children: [
+
+                    // Expanded(
+                    //   child:
+                    // ),
+            //         // Padding(
+            //         //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            //         //   child: TextButton(
+            //         //     onPressed: (){
+            //         //
+            //         //     },
+            //         //     child: Row(
+            //         //         mainAxisAlignment: MainAxisAlignment.center,
+            //         //         children: [
+            //         //           isFlag?Icon(Icons.cancel):Icon(Icons.search),
+            //         //           SizedBox(width: 10.0,),
+            //         //           isFlag?Text("Cancel",):Text("Search",),
+            //         //         ]
+            //         //     ),
+            //         //     style: ButtonStyle(
+            //         //       backgroundColor: MaterialStateProperty.all(Color(0xff2D3250)),
+            //         //       minimumSize: MaterialStateProperty.all(Size(150.0, 65.0)),
+            //         //       foregroundColor: MaterialStateProperty.all(Colors.white),
+            //         //       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            //         //         RoundedRectangleBorder(
+            //         //           borderRadius: BorderRadius.circular(5.0),
+            //         //         ),
+            //         //       ),
+            //         //     ),
+            //         //   ),
+            //         // ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
+            SizedBox(height: 10.0,),
+            Expanded(
+              child: FutureBuilder<List<Datawidget>>(
+                future: lis,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    // Return a loading indicator while waiting for the future
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [CircularProgressIndicator(
+                          value: loader,
+                          backgroundColor: Colors.grey,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                          SizedBox(height: 10.0,),
+                          Text('Fetched: $percentageloader%'),
+                        ],
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+                    // Return an error message if the future fails
+                    return Center(
+                      child: Text('Error: ${snapshot.error}'),
                     );
                   } else {
-                    // Return a message if there's no data
-                    return Center(
-                      child: Text('No data available'),
-                    );
+                    // Return the ListView once the future completes
+                    List<Datawidget>? data = snapshot.data;
+                    if (data != null && data.isNotEmpty) {
+                      return ListView.builder(
+                        itemCount: data.length,
+                        itemBuilder: (context, index) {
+                          return data[index];
+                        },
+                      );
+                    } else {
+                      // Return a message if there's no data
+                      return Center(
+                        child: Text('No data available'),
+                      );
+                    }
                   }
-                }
-              },
+                },
+              ),
+            ),
+
+          ],
+        ),
+      ),
+        if (isLoading) ...[
+          ModalBarrier(
+            dismissible: false,
+            color: Colors.black.withOpacity(0.5),
+          ),
+          Center(
+            child: SpinKitDoubleBounce(
+              color: Colors.white,
+              size: 50.0,
             ),
           ),
-
         ],
-      ),
+      ],
     );
   }
 }

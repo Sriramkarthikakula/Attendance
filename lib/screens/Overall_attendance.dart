@@ -1,14 +1,19 @@
 import 'package:attendance/Data/lists_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 import '../Data/attendance.dart';
 
 class Overall_Attendance extends StatelessWidget {
-  const Overall_Attendance({super.key});
+  final GlobalKey<_AttendanceCalState> _attendanceCalKey = GlobalKey<_AttendanceCalState>();
+  Overall_Attendance({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +23,14 @@ class Overall_Attendance extends StatelessWidget {
         backgroundColor: Color(0xff8db4e7),
         title: Text('Attendance'),
       ),
-      body:AttendanceCal(),
+      body:AttendanceCal(key: _attendanceCalKey),
       floatingActionButton:FloatingActionButton(onPressed: () async{
-        final pdfFile = await PdfApi.generatePDF();
-        await PdfApi.openFile(pdfFile);
+        final attendanceCalState = _attendanceCalKey.currentState;
+        if (attendanceCalState != null) {
+          final pdfFile = await PdfApi.generatePDF(attendanceCalState.deptvalue,attendanceCalState.yearvalue,attendanceCalState.sectionvalue);
+          await PdfApi.openFile(pdfFile);
+        }
+
       },
         child: Icon(Icons.download),
       ),
@@ -31,7 +40,8 @@ class Overall_Attendance extends StatelessWidget {
 
 
 class AttendanceCal extends StatefulWidget {
-  const AttendanceCal({super.key});
+  final GlobalKey<_AttendanceCalState> key;
+  AttendanceCal({required this.key}) : super(key: key);
 
   @override
   State<AttendanceCal> createState() => _AttendanceCalState();
@@ -43,22 +53,57 @@ class _AttendanceCalState extends State<AttendanceCal> {
   String fetched_Academic_year = "";
   String deptvalue = "";
   String yearvalue="";
+  String deptback = "";
   String sectionvalue = "";
   List<dynamic> class_list = [];
+  String curr="";
   int counter = 0;
   double loader = 0.0;
   int percentageloader = 0;
   List<dynamic> Sections = ["Select"];
   List<dynamic> branches = ["Select"];
+  bool isLoading = true; // To track loading state
+  String? role;
+  final _auth = FirebaseAuth.instance;
   void func() async {
+    try {
+      final QuerySnapshot userDocs = await FirebaseFirestore.instance
+          .collection('Faculty_Data')
+          .where('email', isEqualTo: curr)
+          .get();
+
+      if (userDocs.docs.isNotEmpty) {
+        final DocumentSnapshot userDoc = userDocs.docs[0];
+        setState(() {
+          role = userDoc['faculty_status'];
+          if(role!="admin"){
+            deptback = userDoc['department'];
+          }
+          // Example field name
+          // Stop loading after role is fetched
+        });
+      } else {
+        setState(() {
+          isLoading = true; // Stop loading if no user found
+        });
+      }
+    } catch (error) {
+      // Handle any errors here
+      setState(() {
+        isLoading = true;
+      });
+    }
     final messages = await _firestore.collection('Dept_data').get();
     for (var message in messages.docs){
       final data = message.data();
       setState(() {
-        branches =  branches + data['Branches'];
+        role=="admin"?branches =  branches + data['Branches']:branches.add(deptback);
+        isLoading = false;
       });
     }
   }
+
+
   void func1(String deptvalue, String yearvalue) async {
     final messages = await _firestore.collection('Full_Data').get();
     for (var message in messages.docs) {
@@ -212,157 +257,175 @@ class _AttendanceCalState extends State<AttendanceCal> {
   }
   @override
   void initState() {
+    curr = _auth.currentUser!.email!;
     func();
     super.initState();
   }
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(height: 30.0),
-        Container(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              DropdownMenu<dynamic>(
-                label: Text("Department"),
-                onSelected: (dynamic? value) {
-                  // This is called when the user selects an item.
-                  setState(() {
-                    deptvalue = value!;
-                  });
-                },
-                dropdownMenuEntries: branches.map<DropdownMenuEntry<String>>((dynamic value) {
-                  return DropdownMenuEntry<String>(value: value, label: value);
-                }).toList(),
-                initialSelection: branches.first,
-              ),
-              DropdownMenu<String>(
-                initialSelection: Year.first,
-                label: Text("Year"),
-                onSelected: (String? value) {
-                  // This is called when the user selects an item.
-                  setState(() {
-                    yearvalue = value!;
-
-                    func1(deptvalue,yearvalue);
-                  });
-                },
-                dropdownMenuEntries: Year.map<DropdownMenuEntry<String>>((String value) {
-                  return DropdownMenuEntry<String>(value: value, label: value);
-                }).toList(),
-              ),
-
-            ],
-          ),
-        ),
-        SizedBox(height: 20.0),
-        Container(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              DropdownMenu<dynamic>(
-                initialSelection: Sections.first,
-                label: Text("Section"),
-                onSelected: (dynamic? value) {
-                  // This is called when the user selects an item.
-                  setState(() {
-                    sectionvalue = value!;
-                  });
-                },
-                dropdownMenuEntries: Sections.map<DropdownMenuEntry<String>>((dynamic value) {
-                  return DropdownMenuEntry<String>(value: value, label: value);
-                }).toList(),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: TextButton(
-                  onPressed: (){
-                    setState(() {
-                      loader = 0.0;
-                      percentageloader = 0;
-                      counter = 0;
-                      PdfHeader.clear();
-                      StudentsData.clear();
-                      if(isFlag){
-                        isFlag = false;
-                      }
-                      else{
-                        isFlag = true;
-                      }
-                      lis = gettingClassList(deptvalue,yearvalue,sectionvalue);
-
-                    });
-                   },
-                  child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        isFlag?Icon(Icons.cancel):Icon(Icons.search),
-                        SizedBox(width: 10.0,),
-                        isFlag?Text("Cancel",):Text("Search",),
-                      ]
+    return Stack(
+      children: [SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 30.0),
+            Container(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  DropdownMenu<dynamic>(
+                    label: Text("Department"),
+                    onSelected: (dynamic? value) {
+                      // This is called when the user selects an item.
+                      setState(() {
+                        deptvalue = value!;
+                      });
+                    },
+                    dropdownMenuEntries: branches.map<DropdownMenuEntry<String>>((dynamic value) {
+                      return DropdownMenuEntry<String>(value: value, label: value);
+                    }).toList(),
+                    initialSelection: branches.first,
                   ),
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all(Color(0xff2D3250)),
-                    minimumSize: MaterialStateProperty.all(Size(150.0, 65.0)),
-                    foregroundColor: MaterialStateProperty.all(Colors.white),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5.0),
+                  DropdownMenu<String>(
+                    initialSelection: Year.first,
+                    label: Text("Year"),
+                    onSelected: (String? value) {
+                      // This is called when the user selects an item.
+                      setState(() {
+                        yearvalue = value!;
+
+                        func1(deptvalue,yearvalue);
+                      });
+                    },
+                    dropdownMenuEntries: Year.map<DropdownMenuEntry<String>>((String value) {
+                      return DropdownMenuEntry<String>(value: value, label: value);
+                    }).toList(),
+                  ),
+
+                ],
+              ),
+            ),
+            SizedBox(height: 20.0),
+            Container(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  DropdownMenu<dynamic>(
+                    initialSelection: Sections.first,
+                    label: Text("Section"),
+                    onSelected: (dynamic? value) {
+                      // This is called when the user selects an item.
+                      setState(() {
+                        sectionvalue = value!;
+                      });
+                    },
+                    dropdownMenuEntries: Sections.map<DropdownMenuEntry<String>>((dynamic value) {
+                      return DropdownMenuEntry<String>(value: value, label: value);
+                    }).toList(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: TextButton(
+                      onPressed: (){
+                        setState(() {
+                          loader = 0.0;
+                          percentageloader = 0;
+                          counter = 0;
+                          PdfHeader.clear();
+                          StudentsData.clear();
+                          if(isFlag){
+                            isFlag = false;
+                          }
+                          else{
+                            isFlag = true;
+                          }
+                          lis = gettingClassList(deptvalue,yearvalue,sectionvalue);
+
+                        });
+                       },
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            isFlag?Icon(Icons.cancel):Icon(Icons.search),
+                            SizedBox(width: 10.0,),
+                            isFlag?Text("Cancel",):Text("Search",),
+                          ]
+                      ),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(Color(0xff2D3250)),
+                        minimumSize: MaterialStateProperty.all(Size(150.0, 65.0)),
+                        foregroundColor: MaterialStateProperty.all(Colors.white),
+                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5.0),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
-        SizedBox(height: 10.0,),
-        Expanded(
-          child: FutureBuilder<List<Datawidget>>(
-            future: lis,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                // Return a loading indicator while waiting for the future
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [CircularProgressIndicator(
-                      value: loader,
-                      backgroundColor: Colors.grey,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                    ),
-                      SizedBox(height: 10.0,),
-                      Text('Fetched: $percentageloader%'),
-                    ],
-                  ),
-                );
-              } else if (snapshot.hasError) {
-                // Return an error message if the future fails
-                return Center(
-                  child: Text('Error: ${snapshot.error}'),
-                );
-              } else {
-                // Return the ListView once the future completes
-                List<Datawidget>? data = snapshot.data;
-                if (data != null && data.isNotEmpty) {
-                  return ListView.builder(
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      return data[index];
-                    },
-                  );
-                } else {
-                  // Return a message if there's no data
-                  return Center(
-                    child: Text('No data available'),
-                  );
-                }
-              }
-            },
-          ),
-        ),
+            ),
+            SizedBox(height: 10.0,),
+            Expanded(
+              child: FutureBuilder<List<Datawidget>>(
+                future: lis,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    // Return a loading indicator while waiting for the future
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [CircularProgressIndicator(
+                          value: loader,
+                          backgroundColor: Colors.grey,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                          SizedBox(height: 10.0,),
+                          Text('Fetched: $percentageloader%'),
+                        ],
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+                    // Return an error message if the future fails
+                    return Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    );
+                  } else {
+                    // Return the ListView once the future completes
+                    List<Datawidget>? data = snapshot.data;
+                    if (data != null && data.isNotEmpty) {
+                      return ListView.builder(
+                        itemCount: data.length,
+                        itemBuilder: (context, index) {
+                          return data[index];
+                        },
+                      );
+                    } else {
+                      // Return a message if there's no data
+                      return Center(
+                        child: Text('No data available'),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
 
+          ],
+        ),
+      ),
+        if (isLoading) ...[
+          ModalBarrier(
+            dismissible: false,
+            color: Colors.black.withOpacity(0.5),
+          ),
+          Center(
+            child: SpinKitDoubleBounce(
+              color: Colors.white,
+              size: 50.0,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -394,10 +457,15 @@ class Datawidget extends StatelessWidget {
             children: [
               Container(
                 padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text('Roll number: $rolls',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold
-                  ),
+                child: Row(
+                  children: [
+                    FaIcon(FontAwesomeIcons.user, color: Colors.blueAccent,size: 16.0,),
+                    SizedBox(width: 4.0,),
+                    Text('Roll number: $rolls',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold
+                    ),
+                  ),]
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -427,53 +495,77 @@ class Datawidget extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 20.0,),
+          SizedBox(height: 40.0,),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              Text("Attended"),
-              Text("Conducted"),
-              Text("Total Percentage"),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+              Column(
+                children: [
 
-                child: Text(totalclassesAttended.toString(),
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+
+                    child: Text(totalclassesAttended.toString(),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                    ),
                   ),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
+                  Text("Attended"),
+                ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text(total_classes_completed.toString(),style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
+              Column(
+                children: [
+
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+                    child: Text(total_classes_completed.toString(),style: TextStyle(
+                        fontWeight: FontWeight.bold
+                    ),),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                    ),
+                  ),
+                  Text("Conducted"),
+                ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text(total_percentage.toString(),style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
+              Column(
+                children: [
+                  CircularPercentIndicator(
+                      radius: 55.0,
+                      lineWidth: 12.0,
+                    percent: double.parse(total_percentage)/100,
+                    progressColor: Color(0xff8db4e7),
+                    backgroundColor: Color(0xffEEF5FF),
+                    circularStrokeCap: CircularStrokeCap.round,
+                    center: Text('$total_percentage %',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12.0),),
+
+                  ),
+                  SizedBox(height: 15.0,),
+                  // Container(
+                  //   padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+                  //   child: Text(total_percentage.toString(),style: TextStyle(
+                  //       fontWeight: FontWeight.bold
+                  //   ),),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.white,
+                  //     borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                  //   ),
+                  // ),
+                  Text("Percentage"),
+                ],
               ),
+
             ],
           ),
+
         ],
       ),
     );

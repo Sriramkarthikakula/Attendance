@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
 class Faculty_History_Number extends StatefulWidget {
@@ -19,6 +20,15 @@ class _Faculty_History_NumberState extends State<Faculty_History_Number> {
   String search ="" ;
   String searching = "";
   final _firestore = FirebaseFirestore.instance;
+  String formatDate(String inputDate) {
+    // Parse the input date string in 'yyyy-MM-dd' format
+    DateTime date = DateFormat('yyyy-MM-dd').parse(inputDate);
+
+    // Format the parsed date to 'dd-MM-yyyy' format
+    String formattedDate = DateFormat('dd-MM-yyyy').format(date);
+
+    return formattedDate;
+  }
   @override
   void initState() {
     final _auth = FirebaseAuth.instance;
@@ -119,6 +129,7 @@ class _Faculty_History_NumberState extends State<Faculty_History_Number> {
                           final year = message['Year'];
                           final time_slot = message['Time_slot'];
                           final Date = message['Date'];
+                          String displayDate = formatDate(Date);
                           final messageContainer =
                           Datawidget(
                               Dept,
@@ -126,7 +137,7 @@ class _Faculty_History_NumberState extends State<Faculty_History_Number> {
                               Section,
                               year,
                               time_slot,
-                              Date,
+                              displayDate,
                               searching) ;
                           messageWidgets.add(messageContainer);
                         }
@@ -199,10 +210,19 @@ class Datawidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(Date,
-            style: TextStyle(
-                fontWeight: FontWeight.bold
-            ),),
+          Row(
+            children: [
+              FaIcon(FontAwesomeIcons.user,color: Colors.blueAccent,),
+              SizedBox(width:7.0),
+              Text(Date,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                fontSize: 16.0,
+              ),),
+
+            ]
+          ),
+          SizedBox(height: 10.0,),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

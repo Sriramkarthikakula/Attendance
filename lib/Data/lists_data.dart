@@ -17,15 +17,7 @@ const List<String> Year = [
   '4th_year'
 ];
 
-const List<String> Timeslots = [
-  'Select',
-  '9:00 - 10:30',
-  '10:30 - 12:00',
-  '1:30 - 3:00',
-  '3:00 - 4:30',
-  '9:00 - 12:00',
-  '1:30 - 4:30'
-];
+
 List<dynamic> PdfHeader=[];
 
 List<List<dynamic>> StudentsData = [];

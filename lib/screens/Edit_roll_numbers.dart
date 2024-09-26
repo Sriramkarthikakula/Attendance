@@ -65,7 +65,7 @@ class _RollnumbersState extends State<Rollnumbers> {
   List<dynamic> branches = ["Select"];
   late DocumentReference ref;
   void func() async {
-    today_Date = DateFormat('dd-MM-yyyy').format(DateTime.now());
+    today_Date = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final messages = await _firestore.collection('Dept_data').get();
     for (var message in messages.docs){
       final data = message.data();
@@ -84,6 +84,7 @@ class _RollnumbersState extends State<Rollnumbers> {
       if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
         setState(() {
           Sections = Sections+ data[deptvalue][yearvalue]['section'];
+
           fetched_Academic_year = data[deptvalue][yearvalue]['Academic_year_begins'];
         });
         break;

@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class Faculty_History extends StatefulWidget {
   const Faculty_History({super.key});
@@ -55,10 +56,19 @@ class _Faculty_HistoryState extends State<Faculty_History> {
     );
     if (picked != null && picked != DateTime.now()) {
       setState(() {
-        search = DateFormat('dd-MM-yyyy').format(picked).toString(); // Set the selected date to the search string
+        search = DateFormat('yyyy-MM-dd').format(picked).toString(); // Set the selected date to the search string
       });
       searchController.text = DateFormat('dd-MM-yyyy').format(picked).toString();
     }
+  }
+  String formatDate(String inputDate) {
+    // Parse the input date string in 'yyyy-MM-dd' format
+    DateTime date = DateFormat('yyyy-MM-dd').parse(inputDate);
+
+    // Format the parsed date to 'dd-MM-yyyy' format
+    String formattedDate = DateFormat('dd-MM-yyyy').format(date);
+
+    return formattedDate;
   }
   @override
   Widget build(BuildContext context) {
@@ -156,10 +166,11 @@ class _Faculty_HistoryState extends State<Faculty_History> {
                               final time_slot = message['Time_slot'];
                               final Absent_list = message['Absentees'];
                               final Date = message['Date'];
+                              String displayDate = formatDate(Date);
                               DateTime gettingDate = DateFormat('dd-MM-yyyy').parse(Date);
                               String day = getDayOfWeek(gettingDate);
                               final edited = message['edited'];
-                              final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, Date,edited,day);
+                              final messageContainer = Datawidget(Dept, Course, Section, year, time_slot, Absent_list, displayDate,edited,day);
                               messageWidgets.add(messageContainer);
                             }
                             return Expanded(
@@ -213,6 +224,28 @@ class NoHistory extends StatelessWidget {
     );
   }
 }
+
+Future<List<dynamic>?> presentList(String Date,String Dept,String year,String Section,String time_slot) async {
+  try {
+    DateTime parsedDate = DateFormat("dd-MM-yyyy").parse(Date);
+    String formattedDate = DateFormat("yyyy-MM-dd").format(parsedDate);
+    final QuerySnapshot userDocs = await FirebaseFirestore.instance
+        .collection('event_attendance').where('Date',isEqualTo:formattedDate)
+        .where('Department', isEqualTo: Dept).where('Year', isEqualTo: year).where('Section', isEqualTo: Section).where('Time_slot', isEqualTo: time_slot)
+        .get();
+
+    if (userDocs.docs.isNotEmpty) {
+      final DocumentSnapshot userDoc = userDocs.docs[0];
+      return List.from(userDoc['Present']);  // Directly return the value
+    } else {
+      return null; // No document found
+    }
+  } catch (e) {
+    print("Error fetching event name: $e");
+    return null;  // Return null on error
+  }
+}
+
 class Datawidget extends StatelessWidget {
 
  final String Dept;
@@ -228,6 +261,16 @@ class Datawidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<List<dynamic>?>(
+        future: presentList(Date,Dept,year,Section,time_slot),
+    builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+    // Show a loader while fetching event name
+    }
+    if (snapshot.hasError) {
+    return Text('Error fetching event name');
+    }
+    final presentees = snapshot.data ?? [];
     return Container(
       margin: EdgeInsets.symmetric(vertical: 10.0,horizontal: 23.0),
 
@@ -361,10 +404,12 @@ class Datawidget extends StatelessWidget {
           ),
           SizedBox(height: 20.0,),
           Padding(
-            padding:EdgeInsets.symmetric(horizontal: 23.0),
+            padding:presentees.isNotEmpty?EdgeInsets.all(0.0):EdgeInsets.only(left: 23.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: presentees.isNotEmpty
+                  ? MainAxisAlignment.spaceEvenly
+            : MainAxisAlignment.start,
               children: [
                 Column(
                   children: [
@@ -373,25 +418,67 @@ class Datawidget extends StatelessWidget {
                     ),),
                     SizedBox(height: 10.0,),
                     Column(
-                      children: Absent_list.map((absentee) => Text(absentee.toString(),style: TextStyle(
-                        fontSize: 16.0,
-                      ),)).toList(),
+                      children: Absent_list.map((absentee) => Column(
+                        children: [
+                          Row(
+                            children: [
+                            FaIcon(FontAwesomeIcons.user, color: Colors.blueAccent,size: 18.0,),
+                          SizedBox(width: 10.0), // Add some space between the icon and the text
+                          Text(
+                            absentee.toString(),
+                            style: TextStyle(
+                              fontSize: 16.0,
+                            ),
+                          ),]),SizedBox(height: 5.0,)],
+                      ),).toList(),
                     ),
                   ],
                 ),
+                Column(
+                  children: [
+                    Text(presentees.isNotEmpty?"Event Members:":"",style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),),
+                    SizedBox(height: 10.0,),
+                    Column(
+                      children: presentees.map((present) => Column(
+                        children: [
+                          Row(
+                              children: [
+                                FaIcon(FontAwesomeIcons.user, color: Colors.blueAccent,size: 18.0,),
+                                SizedBox(width: 10.0), // Add some space between the icon and the text
+                                Text(
+                                  present.toString(),
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                  ),
+                                ),]),SizedBox(height: 5.0,)],
+                      ),).toList(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 10.0,),
+          Padding(
+            padding: EdgeInsets.only(right: 23.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
                 Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(30.0),
-                    ),
-                    child: IconButton(
-                        onPressed: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context){
-                            return Edit_Page(Dept,Course,year,time_slot,Section,Absent_list,Date);
-                          }));
-                        },
-                        icon: Icon(Icons.edit),
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(30.0),
+                  ),
+                  child: IconButton(
+                    onPressed: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context){
+                        return Edit_Page(Dept,Course,year,time_slot,Section,Absent_list,Date,presentees);
+                      }));
+                    },
+                    icon: Icon(Icons.edit),
+                  ),
                 ),
               ],
             ),
@@ -411,6 +498,6 @@ class Datawidget extends StatelessWidget {
         ],
 
       ),
-    );
+    );});
   }
 }

@@ -239,17 +239,21 @@ class _EditingbranchesState extends State<Editingbranches> {
                       print("error");
                     }
                     try {
-                    for(dynamic i in adding){
+                      DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(today_Date);
+
+                      // Format it into "yyyy-MM-dd" format
+                      String formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
+                      for(dynamic i in adding){
 
                         // Create a new document in the "Full_Data" collection with a random ID
                         DocumentReference fullDataRef = _firestore.collection('Full_Data').doc();
                         // Create the data for the document
                         Map<String, dynamic> documentData = {
                           i: {
-                            '1st_year': {'classes': [], 'section': [],'Academic_year_begins':today_Date},
-                            '2nd_year': {'classes': [], 'section': [],'Academic_year_begins':today_Date},
-                            '3rd_year': {'classes': [], 'section': [],'Academic_year_begins':today_Date},
-                            '4th_year': {'classes': [], 'section': [],'Academic_year_begins':today_Date},
+                            '1st_year': {'classes': [], 'section': [],'Academic_year_begins':formattedDate},
+                            '2nd_year': {'classes': [], 'section': [],'Academic_year_begins':formattedDate},
+                            '3rd_year': {'classes': [], 'section': [],'Academic_year_begins':formattedDate},
+                            '4th_year': {'classes': [], 'section': [],'Academic_year_begins':formattedDate},
                           }
                         };
 
