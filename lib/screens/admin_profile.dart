@@ -19,6 +19,7 @@ import 'EditCourses.dart';
 import 'Edit_Sections.dart';
 import 'Edit_roll_numbers.dart';
 import 'Overall_attendance.dart';
+import 'Timeslots.dart';
 import 'admin_home_Screen.dart';
 import 'admin_student_numbersearch.dart';
 import 'changepassword.dart';
@@ -352,7 +353,7 @@ class _AdminProfileState extends State<AdminProfile> {
                                     },
                                     child: ListTile(
                                       leading: Icon(Icons.login_rounded),
-                                      title: Text("Student_OverAll Attendance"),
+                                      title: Text("Student OverAll Attendance"),
                                       trailing: Icon(Icons.arrow_forward_ios_sharp),
                                     ),
                                   ),
@@ -362,6 +363,23 @@ class _AdminProfileState extends State<AdminProfile> {
                                     margin: EdgeInsets.symmetric(vertical: 20), // Adjust the margin if needed
                                   ),],
     if (role == 'admin' ) ...[
+      GestureDetector(
+        onTap: (){
+          Navigator.push(context, MaterialPageRoute(builder: (context){
+            return EditTimeSlots();
+          }));
+        },
+        child: ListTile(
+          leading: Icon(Icons.account_circle),
+          title: Text("Edit Time Slots"),
+          trailing: Icon(Icons.arrow_forward_ios_sharp),
+        ),
+      ),
+      Container(
+        height: 1, // Adjust the height of the line
+        color: Colors.black.withOpacity(0.2), // Set the color of the line
+        margin: EdgeInsets.symmetric(vertical: 20), // Adjust the margin if needed
+      ),
                                   GestureDetector(
                                     onTap: (){
                                       Navigator.push(context, MaterialPageRoute(builder: (context){

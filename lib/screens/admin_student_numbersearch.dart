@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 import '../Data/attendance.dart';
@@ -52,6 +54,7 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
   List<dynamic> class_list = [];
   List<dynamic> roll_no = [];
   int counter = 0;
+  Map<String, dynamic> full_data = {};
   dynamic deptback="";
   double loader = 0.0;
   int percentageloader = 0;
@@ -103,7 +106,7 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
     }
     final messages = await _firestore.collection('Dept_data').get();
     for (var message in messages.docs){
-      final data = message.data();
+      var data = message.data();
       setState(() {
         role=="admin"?branches =  branches + data['Branches']:branches.add(deptback);
         isLoading = false;
@@ -116,12 +119,12 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
 
     final messages = await _firestore.collection('Full_Data').get();
     for (var message in messages.docs) {
-      var data = message.data();
-      if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
+      full_data = message.data();
+      if(full_data.containsKey(deptvalue) && full_data[deptvalue].containsKey(yearvalue)){
         setState(() {
           Sections = ["Select"];
-          Sections = Sections+ data[deptvalue][yearvalue]['section'];
-          fetched_Academic_year = data[deptvalue][yearvalue]['Academic_year_begins'];
+          Sections = Sections+ full_data[deptvalue][yearvalue]['section'];
+          fetched_Academic_year = full_data[deptvalue][yearvalue]['Academic_year_begins'];
           academicYearStart = DateFormat("yyyy-MM-dd").parse(fetched_Academic_year);
         });
         break;
@@ -139,7 +142,7 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
       if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
         setState(() {
           roll_no = [];
-          roll_no = data[deptvalue][yearvalue][section];
+          roll_no = data[deptvalue][yearvalue][section]['roll_numbers'];
         });
         break;
       }
@@ -150,13 +153,10 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
   }
   late Future<List<Datawidget>> lis = Future.value([]);
   Future<List<Datawidget>> gettingClassList(String deptValue,String YearValue,String sectionvalue) async {
-    List<int> classes_count = [];
-    int claases_len=0;
-    int count=0;
     int len=0;
     int totalclassesAttended=0;
     int attended=0;
-    int total_classes_completed=0;
+    int? total_classes_completed=0;
     double total_percentage = 0;
     final messages = await _firestore.collection('Full_Data').get();
     for (var message in messages.docs) {
@@ -172,20 +172,11 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
         continue;
       }
     }
-    for(var items in class_list){
-      QuerySnapshot querySnapshot = (selectedDate=="" && Today_date=="")? await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get() : await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Date', isGreaterThanOrEqualTo: selectedDate).where('Date', isLessThanOrEqualTo: Today_date).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get();
-      if(querySnapshot.docs.isNotEmpty){
-        List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
-        claases_len = doc.length;
-      }
-      else{
-        claases_len = 0;
-      }
-      classes_count.add(claases_len);
-    }
-    for(int i in classes_count){
-      total_classes_completed = total_classes_completed+i;
-    }
+    Map<String, dynamic> courses_details = full_data[deptvalue][yearvalue][sectionvalue]['courses_count'];
+    print(courses_details);
+    // for(int i in classes_count){
+    //
+    // }
     List<Datawidget> messageWidgets = [];
     String AbyCpercentageString ='';
       List<String> AbyClist = [];
@@ -193,18 +184,42 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
       List<dynamic> StudentStat = [];
       List<String> AbyCwithPercentage = [];
       for(var j in class_list){
-        QuerySnapshot querySnapshot = (selectedDate=="" && Today_date=="")? await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: j).where('Academic_year',isEqualTo:fetched_Academic_year).where('Absentees', arrayContains: searching).get() :await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: j).where('Date', isGreaterThanOrEqualTo: selectedDate).where('Date', isLessThanOrEqualTo: Today_date).where('Academic_year',isEqualTo:fetched_Academic_year).where('Absentees', arrayContains: searching).get();
-        print(querySnapshot.docs.length);
-        if(querySnapshot.docs.isNotEmpty){
-          List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
-          len = doc.length;
+        len=0;
+        QuerySnapshot querySnapshot = (selectedDate=="" && Today_date=="") ? await _firestore.collection('Absent_data')
+            .where('Department', isEqualTo: deptvalue)
+            .where('Year',isEqualTo: yearvalue)
+            .where('Section',isEqualTo: sectionvalue)
+            .where('Course_name',isEqualTo: j)
+            .where('Academic_year',isEqualTo:fetched_Academic_year)
+            .where('Entities',whereIn: [1, 2, 4])
+            .where('Absentees', arrayContains: searching)
+            .get():await _firestore.collection('Absent_data')
+            .where('Department', isEqualTo: deptvalue)
+            .where('Year',isEqualTo: yearvalue)
+            .where('Section',isEqualTo: sectionvalue)
+            .where('Course_name',isEqualTo: j)
+            .where('Date', isGreaterThanOrEqualTo: selectedDate)
+            .where('Date', isLessThanOrEqualTo: Today_date)
+            .where('Academic_year',isEqualTo:fetched_Academic_year)
+            .where('Entities',whereIn: [1, 2, 4])
+            .where('Absentees', arrayContains: searching)
+            .get();
+        for (var doc in querySnapshot.docs) {
+          // Get the entity value for this document
+          int entityValue = doc['Entities'];
+
+          // Update the length based on the entity value
+          if (entityValue == 1) {
+            len += 1;  // Add 1 to len for entity 1
+          } else if (entityValue == 2) {
+            len += 2;  // Add 2 to len for entity 2
+          } else if (entityValue == 4) {
+            len += 4;  // Add 4 to len for entity 4
+          }
         }
-        else{
-          len=0;
-        }
-        attended = classes_count[count]-len;
+        attended = courses_details[j]['count']-len;
         totalclassesAttended = totalclassesAttended+attended;
-        int classcount = classes_count[count];
+        int classcount = courses_details[j]['count'];
         String classesAttended = attended.toString();
         String classesStrcount = classcount.toString();
         String AbyC = classesAttended+"/"+classesStrcount;
@@ -221,16 +236,17 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
           AbyCpercentageString = AbyC+" ("+result+"%)";
         }
         AbyCwithPercentage.add(AbyCpercentageString);
-        count++;
+
         setState(() {
           loader = counter/(class_list.length);
           percentageloader = (loader*100).toInt();
         });
         counter = counter+1;
+        total_classes_completed = (total_classes_completed!+courses_details[j]['count']) as int?;
       }
 
 
-      total_percentage = (totalclassesAttended/total_classes_completed)*100;
+      total_percentage = (totalclassesAttended/total_classes_completed!)*100;
       String total_percentage_result = total_percentage.toStringAsFixed(2);
       StudentStat.add(searching);
       StudentStat=StudentStat+AbyCwithPercentage;
@@ -242,7 +258,7 @@ class _Student_AttendanceCalState extends State<Student_AttendanceCal> {
       final studentdet = Datawidget(searching,class_list,AbyClist,Percentage,totalclassesAttended,total_classes_completed,total_percentage_result);
       messageWidgets.add(studentdet);
       totalclassesAttended=0;
-      count=0;
+
       if(rollNumber.length == counter){
         print(counter);
         setState(() {
@@ -575,10 +591,15 @@ class Datawidget extends StatelessWidget {
             children: [
               Container(
                 padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text('Roll number: $rolls',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold
-                  ),
+                child: Row(
+                    children: [
+                      FaIcon(FontAwesomeIcons.user, color: Colors.blueAccent,size: 16.0,),
+                      SizedBox(width: 4.0,),
+                      Text('Roll number: $rolls',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold
+                        ),
+                      ),]
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -608,53 +629,77 @@ class Datawidget extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 20.0,),
+          SizedBox(height: 40.0,),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              Text("Attended"),
-              Text("Conducted"),
-              Text("Total Percentage"),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+              Column(
+                children: [
 
-                child: Text(totalclassesAttended.toString(),
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+
+                    child: Text(totalclassesAttended.toString(),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                    ),
                   ),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
+                  Text("Attended"),
+                ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text(total_classes_completed.toString(),style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
+              Column(
+                children: [
+
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+                    child: Text(total_classes_completed.toString(),style: TextStyle(
+                        fontWeight: FontWeight.bold
+                    ),),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                    ),
+                  ),
+                  Text("Conducted"),
+                ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
-                child: Text(total_percentage.toString(),style: TextStyle(
-                    fontWeight: FontWeight.bold
-                ),),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                ),
+              Column(
+                children: [
+                  CircularPercentIndicator(
+                    radius: 55.0,
+                    lineWidth: 12.0,
+                    percent: double.parse(total_percentage)/100,
+                    progressColor: Color(0xff8db4e7),
+                    backgroundColor: Color(0xffEEF5FF),
+                    circularStrokeCap: CircularStrokeCap.round,
+                    center: Text('$total_percentage %',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12.0),),
+
+                  ),
+                  SizedBox(height: 15.0,),
+                  // Container(
+                  //   padding: EdgeInsets.symmetric(vertical: 5.0,horizontal: 5.0),
+                  //   child: Text(total_percentage.toString(),style: TextStyle(
+                  //       fontWeight: FontWeight.bold
+                  //   ),),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.white,
+                  //     borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                  //   ),
+                  // ),
+                  Text("Percentage"),
+                ],
               ),
+
             ],
           ),
+
         ],
       ),
     );

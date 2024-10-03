@@ -16,7 +16,7 @@ class EditBranches extends StatelessWidget {
       backgroundColor: Color(0xffEEF5FF),
       appBar: AppBar(
         backgroundColor: Color(0xff8db4e7),
-        title: Text('Attendance'),
+        title: Text('Edit Branches'),
       ),
       body:Editingbranches(),
     );
@@ -72,12 +72,12 @@ class _EditingbranchesState extends State<Editingbranches> {
               child: Column(
                 children: [
                   Center(
-                    child: Text("Classes are Empty",style: TextStyle(
+                    child: Text("No Branch Available",style: TextStyle(
                       fontWeight: FontWeight.bold,
                     ),),
                   ),
                   Center(
-                    child: Text("Please add the Classes",style: TextStyle(
+                    child: Text("Please add the Branches",style: TextStyle(
                       fontWeight: FontWeight.bold,
                     ),),
                   ),
@@ -129,7 +129,7 @@ class _EditingbranchesState extends State<Editingbranches> {
                   ),
                   child: Column(
                     children: [
-                      Text("Courses:",style: TextStyle(
+                      Text("Branches:",style: TextStyle(
                         fontWeight: FontWeight.bold,
                       ),),
                       SizedBox(height: 10.0,),
@@ -224,7 +224,7 @@ class _EditingbranchesState extends State<Editingbranches> {
           onTap: ()=> showDialog(
               context: context,
               builder: (BuildContext context)=> AlertDialog(
-                title: Text("Updated Classes "),
+                title: Text("Update Branches!"),
                 content: Text("Are you sure you want to Update"),
                 actions: [
                   TextButton(onPressed: (){
@@ -289,10 +289,10 @@ class _EditingbranchesState extends State<Editingbranches> {
           ),
           child: Container(
             width: double.infinity,
-            color:Colors.red,
+            color:Color(0xff8db4e7),
             padding: EdgeInsets.symmetric(vertical: 20.0),
             child: Center(
-              child: Text("Submit Attendance",
+              child: Text("Update Branches",
                 style: TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold,
@@ -333,7 +333,7 @@ class AddTaskCont extends StatelessWidget {
         children: [
           Center(
             child: Text(
-              'Add Roll Number',
+              'Add Branch',
               style: TextStyle(
                 color: Colors.lightBlueAccent,
                 fontSize: 25.0,

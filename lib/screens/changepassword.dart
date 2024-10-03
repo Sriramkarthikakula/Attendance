@@ -39,6 +39,23 @@ class _ChangePasswordState extends State<ChangePassword> {
               child: Column(
 
                 children: [
+                  Padding(
+                    padding: EdgeInsets.only(left: 22.0,top: 27.0),
+                    child: TextButton(
+                      onPressed: (){
+                        Navigator.pop(context);
+                      },
+                      child: Icon(Icons.arrow_back_ios_rounded, size: 18.0,),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(Colors.white),
+                        elevation: MaterialStateProperty.all(5.0),
+                        shape: MaterialStateProperty.all<CircleBorder>(
+                          CircleBorder(),
+                        ),
+                        shadowColor: MaterialStateProperty.all(Colors.black),
+                      ),
+                    ),
+                  ),
                   Center(
                     child: CircleAvatar(
                       backgroundImage: AssetImage('assets/images.jpeg'),

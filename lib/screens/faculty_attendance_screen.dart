@@ -16,7 +16,7 @@ class Topsection extends StatefulWidget {
 class _TopsectionState extends State<Topsection> {
   final _firestore = FirebaseFirestore.instance;
 
-
+  int? parse_time;
   String? Curr;
   String deptvalue = "";
   String yearvalue="";
@@ -28,6 +28,7 @@ class _TopsectionState extends State<Topsection> {
   bool checked = false;
   Map<String, dynamic> fulldata = {};
   List<dynamic> courses = ["Select"];
+  late DocumentReference ref;
   List<dynamic> Sections = ["Select"];
   List<dynamic> branches = ["Select"];
   List<dynamic> register_no = [];
@@ -70,6 +71,25 @@ class _TopsectionState extends State<Topsection> {
       });
     }
   }
+  int calculateEntities(String timeSlot, int parsingTime) {
+
+    List<String> times = timeSlot.split(' - '); // Split the time slot string
+
+    // // Parse the start and end times
+    DateFormat customFormat = DateFormat("HH:mm");
+    DateTime startTime = customFormat.parse(times[0].trim());
+    DateTime endTime = customFormat.parse(times[1].trim());
+    //
+    // // Calculate the duration in minutes
+    int durationInMinutes = endTime.difference(startTime).inMinutes;
+
+    // Calculate the number of entities by dividing the duration by the parsing time
+    int entities = (durationInMinutes / parsingTime).floor();
+    // return entities;
+    return entities;
+  }
+
+
   void func1(String deptvalue, String yearvalue) async {
     final messages = await _firestore.collection('Full_Data').get();
     for (var message in messages.docs) {
@@ -77,6 +97,7 @@ class _TopsectionState extends State<Topsection> {
 
        if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
          setState(() {
+           ref = message.reference;
            courses = ["Select"];
            Sections = ["Select"];
            fulldata = data;
@@ -93,7 +114,7 @@ class _TopsectionState extends State<Topsection> {
   }
   void func2 (String deptvalue,String yearvalue,String sectionvalue) async {
       setState(() {
-         register_no = fulldata[deptvalue][yearvalue][sectionvalue];
+         register_no = fulldata[deptvalue][yearvalue][sectionvalue]['roll_numbers'];
       });
       final messages = await _firestore.collection('Dept_data').get();
       for (var message in messages.docs){
@@ -101,6 +122,7 @@ class _TopsectionState extends State<Topsection> {
         setState(() {
           Timeslots = ["Select"];
           Timeslots =  Timeslots + data['Time-Slots'];
+          parse_time = data['parsing_time'];
         });
       }
   }
@@ -274,6 +296,7 @@ class _TopsectionState extends State<Topsection> {
                     }).toList(),
                   ),
                   DropdownMenu<dynamic>(
+                    menuHeight: 250.0,
                     initialSelection: Timeslots.first,
                     label: Text(
                       "Time-Slot"
@@ -351,6 +374,7 @@ class _TopsectionState extends State<Topsection> {
                           }
                         }
                         absent_numbers.sort();
+                        int entities = calculateEntities(Timeslot_value,parse_time!);
                         await _firestore.collection("Absent_data").add({
                           'Submission':FieldValue.serverTimestamp(),
                           'Department': deptvalue,
@@ -364,6 +388,22 @@ class _TopsectionState extends State<Topsection> {
                           'checked':checked,
                           'edited':false,
                           'Academic_year':fetched_Academic_year,
+                          'Entities':entities,
+                        });
+                        final count = fulldata[deptvalue][yearvalue][sectionvalue]['courses_count'][course_value]['count'];
+                        final entity_list = fulldata[deptvalue][yearvalue][sectionvalue]['courses_count'][course_value]['entity_list'];
+                        if(!entity_list.contains(entities)){
+                          entity_list.add(entities);
+                        }
+                        await ref.update({
+                          '$deptvalue.$yearvalue.$sectionvalue.courses_count.$course_value': {
+                            'count': count+entities,
+                            'entity_list': entity_list,
+                          }
+                        }).then((_) {
+                          print("$count added successfully!");
+                        }).catchError((error) {
+                          print("Failed to add $count: $error");
                         });
                         setState(() {
                           absent_numbers.clear();
@@ -423,7 +463,6 @@ class Register_numbers extends StatefulWidget {
 }
 
 class _Register_numbersState extends State<Register_numbers> {
-
   @override
   Widget build(BuildContext context) {
     return ListView.builder(

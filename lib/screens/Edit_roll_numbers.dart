@@ -22,7 +22,7 @@ class _EditRollnumbersState extends State<EditRollnumbers> {
       backgroundColor: Color(0xffEEF5FF),
       appBar: AppBar(
         backgroundColor: Color(0xff8db4e7),
-        title: Text('Attendance'),
+        title: Text('Update Roll numbers'),
       ),
       body:Rollnumbers(),
       floatingActionButton:Padding(
@@ -101,7 +101,7 @@ class _RollnumbersState extends State<Rollnumbers> {
       var data = message.data();
       if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
         ref = message.reference;
-        rollNumber = rollNumber+ data[deptvalue][yearvalue][sectionvalue];
+        rollNumber = rollNumber+ data[deptvalue][yearvalue][sectionvalue]['roll_numbers'];
         break;
       }
     }
@@ -213,7 +213,7 @@ class _RollnumbersState extends State<Rollnumbers> {
               child: Column(
                 children: [
                   Center(
-                    child: Text("Section is Empty",style: TextStyle(
+                    child: Text("No Students are available!",style: TextStyle(
                       fontWeight: FontWeight.bold,
                     ),),
                   ),
@@ -338,13 +338,15 @@ class _RollnumbersState extends State<Rollnumbers> {
                   TextButton(onPressed: () async {
                     if (ref!=null) {
                       if(light){
-                        await ref.update({'$deptvalue.$yearvalue.$sectionvalue': rollNumber});
+                        await ref.update({'$deptvalue.$yearvalue.$sectionvalue.roll_numbers': rollNumber});
                         await ref.update({'$deptvalue.$yearvalue.Academic_year_begins': storing_academic_year});
                       }
                       else{
-                        await ref.update({'$deptvalue.$yearvalue.$sectionvalue': rollNumber});
+                        await ref.update({'$deptvalue.$yearvalue.$sectionvalue.roll_numbers': rollNumber});
                       }
-
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Roll Numbers Updated Successfully!')),
+                      );
                     }
                     else{
                       print("error");

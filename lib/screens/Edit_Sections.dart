@@ -17,7 +17,7 @@ class EditSection extends StatelessWidget {
       backgroundColor: Color(0xffEEF5FF),
       appBar: AppBar(
         backgroundColor: Color(0xff8db4e7),
-        title: Text('Attendance'),
+        title: Text('Edit Sections'),
       ),
       body:EditingSection(),
     );
@@ -282,7 +282,7 @@ class _EditingSectionState extends State<EditingSection> {
           onTap: ()=> showDialog(
               context: context,
               builder: (BuildContext context)=> AlertDialog(
-                title: Text("Update Roll Numbers"),
+                title: Text("Update Sections"),
                 content: Text("Are you sure you want to Update"),
                 actions: [
                   TextButton(onPressed: (){
@@ -300,7 +300,10 @@ class _EditingSectionState extends State<EditingSection> {
                       for(dynamic i in adding){
                         FieldPath nestedFieldPath = FieldPath.fromString('$deptvalue.$yearvalue.$i');
                         await ref.update({
-                          nestedFieldPath: [],
+                          nestedFieldPath: {
+                            'roll_numbers':[],
+                            'courses_count':{},
+                          },
                         });
                       }
                       for(dynamic i in removing){
@@ -312,7 +315,7 @@ class _EditingSectionState extends State<EditingSection> {
                       if(adding.isNotEmpty || removing.isNotEmpty){
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Section`s Updated Successfully'),
+                            content: Text('Section`s Updated Successfully!'),
                           ),
                         );
                       }
@@ -328,10 +331,10 @@ class _EditingSectionState extends State<EditingSection> {
           ),
           child: Container(
             width: double.infinity,
-            color:Colors.red,
+            color:Color(0xff8db4e7),
             padding: EdgeInsets.symmetric(vertical: 20.0),
             child: Center(
-              child: Text("Submit Attendance",
+              child: Text("Update Sections",
                 style: TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold,
@@ -354,7 +357,7 @@ class NoHistory extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.history_outlined),
-        Text("Search a Number to get History"),
+        Text("Select Dropdowns to get History"),
       ],
     );
   }
@@ -372,7 +375,7 @@ class AddTaskCont extends StatelessWidget {
         children: [
           Center(
             child: Text(
-              'Add Roll Number',
+              'Add Section',
               style: TextStyle(
                 color: Colors.lightBlueAccent,
                 fontSize: 25.0,

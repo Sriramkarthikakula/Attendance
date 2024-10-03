@@ -48,7 +48,7 @@ class _Edit_PageState extends State<Edit_Page> {
         if(data.containsKey(widget.Dept) && data[widget.Dept].containsKey(widget.year)){
           setState(() {
             roll_no = [];
-            roll_no = data[widget.Dept][widget.year][widget.Section];
+            roll_no = data[widget.Dept][widget.year][widget.Section]['roll_numbers'];
           });
 
             break;
@@ -271,7 +271,7 @@ class _Edit_PageState extends State<Edit_Page> {
                                         child: Container(
                                           padding: EdgeInsets.only(left: 80.0,right: 80.0,top: 30.0,bottom: MediaQuery.of(context).viewInsets.bottom),
                                           child:AddTaskCont((newtask){
-                                            if (roll_no.contains(newtask) && !presentees.contains(newtask)){
+                                            if (roll_no.contains(newtask) && !presentees.contains(newtask) && !Absent_list1!.contains(newtask)){
                                               setState(() {
                                                 Absent_list1?.add(newtask);
                                               });
@@ -340,12 +340,17 @@ class _Edit_PageState extends State<Edit_Page> {
                 ),
                 child: Container(
                   padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child: Text("Submit Attendance",
-                    style: TextStyle(
-                      fontSize: 22.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),),
+                  color:Color(0xff8db4e7),
+                  width: double.infinity,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [Text("Update Attendance",
+                      style: TextStyle(
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),),],
+                  ),
                 ),
               ),
             ]

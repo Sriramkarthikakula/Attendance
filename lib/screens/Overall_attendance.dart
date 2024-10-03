@@ -123,14 +123,12 @@ class _AttendanceCalState extends State<AttendanceCal> {
   }
   late Future<List<Datawidget>> lis = Future.value([]);
   Future<List<Datawidget>> gettingClassList(String deptValue,String YearValue,String sectionvalue) async {
-    List<int> classes_count = [];
     List<dynamic> rollNumber = [];
-    int claases_len=0;
-    int count=0;
+    Map<String, dynamic> full_data = {};
     int len=0;
     int totalclassesAttended=0;
     int attended=0;
-    int total_classes_completed=0;
+    int? total_classes_completed=0;
     double total_percentage = 0;
       final messages = await _firestore.collection('Full_Data').get();
       for (var message in messages.docs) {
@@ -140,6 +138,7 @@ class _AttendanceCalState extends State<AttendanceCal> {
         var data = message.data();
         if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
           setState(() {
+            full_data=data;
             class_list = [];
             class_list = class_list+ data[deptvalue][yearvalue]['classes'];
             PdfHeader.clear();
@@ -149,35 +148,22 @@ class _AttendanceCalState extends State<AttendanceCal> {
             PdfHeader.add("T.C");
             PdfHeader.add("Total %");
           });
-          rollNumber = rollNumber+ data[deptvalue][yearvalue][sectionvalue];
+          rollNumber = rollNumber+ data[deptvalue][yearvalue][sectionvalue]['roll_numbers'];
           break;
         }
         else{
           continue;
         }
       }
-      for(var items in class_list){
-        if(!isFlag){
-          break;
-        }
-        QuerySnapshot querySnapshot = await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: items).where('Academic_year',isEqualTo:fetched_Academic_year).get();
-        if(querySnapshot.docs.isNotEmpty){
-          List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
-          claases_len = doc.length; // need to write classes *2
-        }
-        else{
-          claases_len = 0;
-        }
-        classes_count.add(claases_len);
-      }
-      for(int i in classes_count){
-        if(!isFlag){
-          break;
-        }
-        total_classes_completed = total_classes_completed+i;
-      }
+      Map<String, dynamic> courses_details = full_data[deptvalue][yearvalue][sectionvalue]['courses_count'];
       List<Datawidget> messageWidgets = [];
       String AbyCpercentageString ='';
+      for(var j in class_list){
+        if(!isFlag){
+          break;
+        }
+        total_classes_completed = (total_classes_completed!+courses_details[j]['count']) as int?;
+      }
       for(var rolls in rollNumber){
         if(!isFlag){
           break;
@@ -188,20 +174,35 @@ class _AttendanceCalState extends State<AttendanceCal> {
         List<String> AbyCwithPercentage = [];
         print(rolls);
         for(var j in class_list){
+          len=0;
           if(!isFlag){
             break;
           }
-          QuerySnapshot querySnapshot = await _firestore.collection('Absent_data').where('Department', isEqualTo: deptvalue).where('Year',isEqualTo: yearvalue).where('Section',isEqualTo: sectionvalue).where('Course_name',isEqualTo: j).where('Academic_year',isEqualTo:fetched_Academic_year).where('Absentees', arrayContains: rolls).get();
-          if(querySnapshot.docs.isNotEmpty){
-            List<QueryDocumentSnapshot<Object?>> doc = querySnapshot.docs;
-            len = doc.length;
+          QuerySnapshot querySnapshot = await _firestore.collection('Absent_data')
+              .where('Department', isEqualTo: deptvalue)
+              .where('Year',isEqualTo: yearvalue)
+              .where('Section',isEqualTo: sectionvalue)
+              .where('Course_name',isEqualTo: j)
+              .where('Entities',whereIn: [1, 2, 4])
+              .where('Academic_year',isEqualTo:fetched_Academic_year)
+              .where('Absentees', arrayContains: rolls)
+              .get();
+          for (var doc in querySnapshot.docs) {
+            // Get the entity value for this document
+            int entityValue = doc['Entities'];
+
+            // Update the length based on the entity value
+            if (entityValue == 1) {
+              len += 1;  // Add 1 to len for entity 1
+            } else if (entityValue == 2) {
+              len += 2;  // Add 2 to len for entity 2
+            } else if (entityValue == 4) {
+              len += 4;  // Add 4 to len for entity 4
+            }
           }
-          else{
-            len=0;
-          }
-          attended = classes_count[count]-len;
+          attended = courses_details[j]['count']-len;
           totalclassesAttended = totalclassesAttended+attended;
-          int classcount = classes_count[count];
+          int classcount = courses_details[j]['count'];
           String classesAttended = attended.toString();
           String classesStrcount = classcount.toString();
           String AbyC = classesAttended+"/"+classesStrcount;
@@ -218,7 +219,6 @@ class _AttendanceCalState extends State<AttendanceCal> {
             AbyCpercentageString = AbyC+" ("+result+"%)";
           }
           AbyCwithPercentage.add(AbyCpercentageString);
-          count++;
         }
         if(!isFlag){
           break;
@@ -228,7 +228,7 @@ class _AttendanceCalState extends State<AttendanceCal> {
           loader = counter/(rollNumber.length);
           percentageloader = (loader*100).toInt();
         });
-        total_percentage = (totalclassesAttended/total_classes_completed)*100;
+        total_percentage = (totalclassesAttended/total_classes_completed!)*100;
         String total_percentage_result = total_percentage.toStringAsFixed(2);
         StudentStat.add(rolls);
         StudentStat=StudentStat+AbyCwithPercentage;
@@ -240,7 +240,7 @@ class _AttendanceCalState extends State<AttendanceCal> {
         final studentdet = Datawidget(rolls,class_list,AbyClist,Percentage,totalclassesAttended,total_classes_completed,total_percentage_result);
         messageWidgets.add(studentdet);
         totalclassesAttended=0;
-        count=0;
+
         if(rollNumber.length == counter){
           print(counter);
           setState(() {

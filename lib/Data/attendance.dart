@@ -12,6 +12,7 @@ class PdfApi {
   static Future<File?> generatePDF(String deptvalue, String yearvalue, String sectionvalue) async {
     final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     final ttf = pw.Font.ttf(fontData);
+    print(StudentsData);
     String studentID = StudentsData[0][0];
     String yearPrefix = studentID.substring(0, 2);
     int startYear = 2000 + int.parse(yearPrefix); // e.g., 21 -> 2021
@@ -23,35 +24,23 @@ class PdfApi {
         margin: pw.EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
         pageFormat: PdfPageFormat.a3,
         build: (context) => [
-          pw.Header(
-            level: 1,
-            child: pw.Center(
-              child: pw.Text(
-                'Sagi Rama Krishnam Raju Engineering College',
-                style: pw.TextStyle(
-                  fontSize: 28,
-                  fontWeight: pw.FontWeight.bold,
-                  font: ttf,
-                ),
-              ),
-            ),
-          ),
-          pw.SizedBox(height: 10), // Space between headers
           pw.Center(
             child: pw.Text(
-              '$deptvalue-$yearvalue-$sectionvalue Section',
+              'Sagi Rama Krishnam Raju Engineering College',
               style: pw.TextStyle(
-                fontSize: 20,
+                fontSize: 28,
                 fontWeight: pw.FontWeight.bold,
                 font: ttf,
               ),
             ),
           ),
+          pw.SizedBox(height: 5.0), // Space between headers
           pw.Center(
             child: pw.Text(
-              '$startYear-$endYear',
+              '$deptvalue,$yearvalue,$sectionvalue Section,$startYear-$endYear',
               style: pw.TextStyle(
-                fontSize: 18,
+                fontSize: 20,
+                fontWeight: pw.FontWeight.bold,
                 font: ttf,
               ),
             ),

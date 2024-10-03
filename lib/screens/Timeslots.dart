@@ -1,14 +1,14 @@
-import 'package:attendance/Data/lists_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 
 
 
-class EditCourses extends StatelessWidget {
-  const EditCourses({super.key});
+class EditTimeSlots extends StatelessWidget {
+  const EditTimeSlots({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,59 +16,44 @@ class EditCourses extends StatelessWidget {
       backgroundColor: Color(0xffEEF5FF),
       appBar: AppBar(
         backgroundColor: Color(0xff8db4e7),
-        title: Text('Edit Courses'),
+        title: Text('Attendance'),
       ),
-      body:EditingCourses(),
+      body:EditingTimeSlots(),
     );
   }
 }
 
-class EditingCourses extends StatefulWidget {
-  const EditingCourses({super.key});
+class EditingTimeSlots extends StatefulWidget {
+  const EditingTimeSlots({super.key});
 
   @override
-  State<EditingCourses> createState() => _EditingCoursesState();
+  State<EditingTimeSlots> createState() => _EditingTimeSlotsState();
 }
 
-class _EditingCoursesState extends State<EditingCourses> {
+class _EditingTimeSlotsState extends State<EditingTimeSlots> {
+  TextEditingController _textController = TextEditingController();
   final _firestore = FirebaseFirestore.instance;
-  String deptvalue = "";
-  String yearvalue="";
-  List<dynamic> adding =[];
-  List<dynamic> removing = [];
   bool isFlag = false;
-  Map<String, dynamic> coursesdata = {};
-  List<dynamic> courses = [];
-  List<dynamic> section = [];
-  List<dynamic> branches = ["Select"];
+  List<dynamic> timeslots = [];
+  List<dynamic> adding = [];
+  List<dynamic> removing = [];
+  int? dup_parse_time;
   late DocumentReference ref;
+  int? parsing_time;
+  String today_Date="";
   void func() async {
+    today_Date = DateFormat('dd-MM-yyyy').format(DateTime.now());
     final messages = await _firestore.collection('Dept_data').get();
     for (var message in messages.docs){
       final data = message.data();
       setState(() {
-        branches =  branches + data['Branches'];
+        ref = message.reference;
+        isFlag =true;
+        parsing_time = data['parsing_time'];
+        dup_parse_time = parsing_time;
+        _textController.text = parsing_time.toString();
+        timeslots =  timeslots + data['Time-Slots'];
       });
-    }
-  }
-  void func1(String deptvalue, String yearvalue) async {
-    final messages = await _firestore.collection('Full_Data').get();
-    for (var message in messages.docs) {
-      var data = message.data();
-      if(data.containsKey(deptvalue) && data[deptvalue].containsKey(yearvalue)){
-        setState(() {
-          ref = message.reference;
-          isFlag = true;
-          courses = data[deptvalue][yearvalue]['classes'];
-          section = data[deptvalue][yearvalue]['section'];
-        });
-        break;
-      }
-      // else{
-      //   setState((){
-      //     isFlag = false;
-      //   });
-      // }
     }
   }
   void initState() {
@@ -79,46 +64,40 @@ class _EditingCoursesState extends State<EditingCourses> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(height: 30.0),
-        Container(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 50.0,vertical: 20.0),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              DropdownMenu<dynamic>(
-                label: Text("Department"),
-                onSelected: (dynamic? value) {
-                  // This is called when the user selects an item.
-                  setState(() {
-                    deptvalue = value!;
-                  });
-                },
-                dropdownMenuEntries: branches.map<DropdownMenuEntry<String>>((dynamic value) {
-                  return DropdownMenuEntry<String>(value: value, label: value);
-                }).toList(),
-                initialSelection: branches.first,
-              ),
-              DropdownMenu<String>(
-                initialSelection: Year.first,
-                label: Text("Year"),
-                onSelected: (String? value) {
-                  // This is called when the user selects an item.
-                  setState(() {
-                    yearvalue = value!;
-                    func1(deptvalue,yearvalue);
-                  });
-                },
-                dropdownMenuEntries: Year.map<DropdownMenuEntry<String>>((String value) {
-                  return DropdownMenuEntry<String>(value: value, label: value);
-                }).toList(),
-              ),
+            mainAxisAlignment: MainAxisAlignment.start,
+            children:[
+              Text("Parsing Time in Minutes:"),
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 35.0),
+                  child: TextField(
+                    controller: _textController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
 
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(15.0),),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+
+                    ),
+                    onChanged: (value){
+                      dup_parse_time= int.tryParse(value);
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        SizedBox(height: 20.0),
         Expanded(
-          child: isFlag?(courses.isEmpty)?Container(
-            height: MediaQuery.of(context).size.height * 0.7, // Adjust the height as needed
+          child: isFlag?(timeslots.isEmpty)?Container(
+            height: MediaQuery.of(context).size.height, // Adjust the height as needed
             child: Container(
               margin: EdgeInsets.symmetric(vertical: 10.0,horizontal: 23.0),
               padding: EdgeInsets.symmetric(vertical: 20.0,horizontal: 25.0),
@@ -129,12 +108,12 @@ class _EditingCoursesState extends State<EditingCourses> {
               child: Column(
                 children: [
                   Center(
-                    child: Text("Courses are Empty",style: TextStyle(
+                    child: Text("Classes are Empty",style: TextStyle(
                       fontWeight: FontWeight.bold,
                     ),),
                   ),
                   Center(
-                    child: Text("Please add the Courses",style: TextStyle(
+                    child: Text("Please add the Classes",style: TextStyle(
                       fontWeight: FontWeight.bold,
                     ),),
                   ),
@@ -150,15 +129,15 @@ class _EditingCoursesState extends State<EditingCourses> {
                             padding: EdgeInsets.only(left: 80.0,right: 80.0,top: 30.0,bottom: MediaQuery.of(context).viewInsets.bottom),
                             child:AddTaskCont((newtask) async{
                               setState(() {
-                                if(!courses.contains(newtask)){
-                                  if(removing.contains(newtask)){
+                                if(!timeslots.contains(newtask)) {
+                                  if (removing.contains(newtask)) {
                                     removing.remove(newtask);
                                     adding.add(newtask);
                                   }
-                                  else{
+                                  else {
                                     adding.add(newtask);
                                   }
-                                  courses?.add(newtask);
+                                  timeslots?.add(newtask);
                                 }
                               });
                               Navigator.pop(context);
@@ -186,7 +165,7 @@ class _EditingCoursesState extends State<EditingCourses> {
                   ),
                   child: Column(
                     children: [
-                      Text("Courses:",style: TextStyle(
+                      Text("Time Slots:",style: TextStyle(
                         fontWeight: FontWeight.bold,
                       ),),
                       SizedBox(height: 10.0,),
@@ -195,9 +174,9 @@ class _EditingCoursesState extends State<EditingCourses> {
                           crossAxisAlignment:CrossAxisAlignment.end,
                           children: [
                             Column(
-                              children: courses!.map((onecourse) =>Row(
+                              children: timeslots!.map((oneBranch) =>Row(
                                 children: [
-                                  Text(onecourse.toString(),style: TextStyle(
+                                  Text(oneBranch.toString(),style: TextStyle(
                                     fontSize: 16.0,
                                   ),),
                                   GestureDetector(
@@ -205,21 +184,21 @@ class _EditingCoursesState extends State<EditingCourses> {
                                         context: context,
                                         builder: (BuildContext context)=> AlertDialog(
                                           title: Text("Delete!"),
-                                          content: Text("Are you sure you want to Remove $onecourse from the list"),
+                                          content: Text("Are you sure you want to Remove $oneBranch from the list"),
                                           actions: [
                                             TextButton(onPressed: (){
                                               Navigator.pop(context);
                                             }, child: Text("Cancel")
                                             ),
-                                            TextButton(onPressed: () {
+                                            TextButton(onPressed: (){
                                               setState(() {
-                                                if(adding.contains(onecourse)){
-                                                  adding.remove(onecourse);
+                                                if(adding.contains(oneBranch)){
+                                                  adding.remove(oneBranch);
                                                 }
                                                 else{
-                                                  removing.add(onecourse);
+                                                  removing.add(oneBranch);
                                                 }
-                                                courses.remove(onecourse);
+                                                timeslots.remove(oneBranch);
                                               });
                                               Navigator.pop(context);
                                             },  child: Text("Yes")),
@@ -247,7 +226,7 @@ class _EditingCoursesState extends State<EditingCourses> {
                                       padding: EdgeInsets.only(left: 80.0,right: 80.0,top: 30.0,bottom: MediaQuery.of(context).viewInsets.bottom),
                                       child:AddTaskCont((newtask) async{
                                         setState(() {
-                                          if(!courses.contains(newtask)){
+                                          if(!timeslots.contains(newtask)){
                                             if(removing.contains(newtask)){
                                               removing.remove(newtask);
                                               adding.add(newtask);
@@ -255,7 +234,7 @@ class _EditingCoursesState extends State<EditingCourses> {
                                             else{
                                               adding.add(newtask);
                                             }
-                                            courses?.add(newtask);
+                                            timeslots?.add(newtask);
                                           }
                                         });
                                         Navigator.pop(context);
@@ -281,7 +260,7 @@ class _EditingCoursesState extends State<EditingCourses> {
           onTap: ()=> showDialog(
               context: context,
               builder: (BuildContext context)=> AlertDialog(
-                title: Text("Updated Courses! "),
+                title: Text("Updated Time Slots!"),
                 content: Text("Are you sure you want to Update"),
                 actions: [
                   TextButton(onPressed: (){
@@ -289,37 +268,32 @@ class _EditingCoursesState extends State<EditingCourses> {
                   }, child: Text("Cancel")
                   ),
                   TextButton(onPressed: () async {
-                    if (ref!=null) {
-                      await ref.update({'$deptvalue.$yearvalue.classes': courses});
-                      for (String sec in section){
-                      for (String course in adding) {
-                        await ref.update({
-                          '$deptvalue.$yearvalue.$sec.courses_count.$course': {
-                            'count': 0,
-                            'entity_list': [],
-                          }
-                        }).then((_) {
-                          print("$course added successfully!");
-                        }).catchError((error) {
-                          print("Failed to add $course: $error");
-                        });
+
+                    try {
+                      if (ref!=null) {
+                        if(parsing_time!=dup_parse_time){
+                          print(dup_parse_time);
+                          await ref.update({'parsing_time': dup_parse_time});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Parsing Updated Successfully'),
+                            ),
+                          );
+                        }
+                        await ref.update({'Time-Slots': timeslots});
                       }
-    // Removing courses from the collection
-    for (String course in removing) {
-    await ref.update({
-    '$deptvalue.$yearvalue.$sec.courses_count.$course': FieldValue.delete(),
-    }).then((_) {
-    print("$course removed successfully!");
-    }).catchError((error) {
-    print("Failed to remove $course: $error");
-    });
-    }}
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Courses Updated Successfully!')),
-                      );
-                    }
-                    else{
-                      print("error");
+                      else{
+                        print("error");
+                      }
+                      if(adding.isNotEmpty || removing.isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Time Slots Updated Successfully'),
+                          ),
+                        );
+                      }
+                    }catch (error) {
+                      print("Error creating document: $error");
                     }
                     Navigator.pop(context);
                     Navigator.pop(context);
@@ -332,7 +306,7 @@ class _EditingCoursesState extends State<EditingCourses> {
             color:Color(0xff8db4e7),
             padding: EdgeInsets.symmetric(vertical: 20.0),
             child: Center(
-              child: Text("Update Courses",
+              child: Text("Submit Time Slots",
                 style: TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold,
@@ -354,26 +328,29 @@ class NoHistory extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.history_outlined),
-        Text("Select Dropdowns to get History"),
+        CircularProgressIndicator(),
+        Text("Fetching Data"),
       ],
     );
   }
 }
 
 class AddTaskCont extends StatelessWidget {
-  final Function(String) addingTask1;
+  final Function(String) addingTask1;// Function now accepts two values
   AddTaskCont(this.addingTask1);
+
   @override
   Widget build(BuildContext context) {
-    String tasktext = '';
-    return  Center(
+    String tasktext1 = '';
+    String tasktext2 = '';
+
+    return Center(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
             child: Text(
-              'Add Course',
+              'Add Time Slot',
               style: TextStyle(
                 color: Colors.lightBlueAccent,
                 fontSize: 25.0,
@@ -381,14 +358,53 @@ class AddTaskCont extends StatelessWidget {
               ),
             ),
           ),
-          TextField(
-            autofocus: true,
-            textAlign: TextAlign.center,
-            onChanged: (newvalue){
-              tasktext = newvalue;
-            },
+          SizedBox(height: 10.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // First Input Box
+              Expanded(
+                child: TextField(
+                  autofocus: true,
+                  textAlign: TextAlign.center,
+                  onChanged: (newvalue) {
+                    tasktext1 = newvalue;
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Start Time',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 10.0),
+              Text(
+                '-', // Hyphen
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(width: 10.0),
+              // Second Input Box
+              Expanded(
+                child: TextField(
+                  textAlign: TextAlign.center,
+                  onChanged: (newvalue) {
+                    tasktext2 = newvalue;
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'End Time',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 10.0,),
+          SizedBox(height: 10.0),
           TextButton(
             style: TextButton.styleFrom(
               shape: RoundedRectangleBorder(
@@ -399,13 +415,15 @@ class AddTaskCont extends StatelessWidget {
                   left: 110.0, right: 110.0, top: 15.0, bottom: 15.0),
               backgroundColor: Colors.lightBlueAccent,
             ),
-            onPressed: (){
-              addingTask1(tasktext);
+            onPressed: () {
+              String newTask = "$tasktext1 - $tasktext2";
+              addingTask1(newTask); // Pass both inputs
             },
             child: Text('Add'),
           ),
-          SizedBox(height: 10.0,),
+          SizedBox(height: 10.0),
         ],
-      ),);
+      ),
+    );
   }
 }
